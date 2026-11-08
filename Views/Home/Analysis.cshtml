@@ -1,0 +1,60 @@
+@model AnalysisViewModel
+@{
+    ViewData["Title"] = Model.Info?.Name;
+    var f = Model.Filter;
+    var routes = new Dictionary<string, string?> { ["id"] = Model.Info!.Id.ToString(), ["level"] = f.Level, ["search"] = f.Search,
+        ["from"] = f.From?.ToString("yyyy-MM-ddTHH:mm:ss"), ["to"] = f.To?.ToString("yyyy-MM-ddTHH:mm:ss") };
+}
+<section class="hero"><div class="eyebrow">ANALİZ</div><h1>@Model.Info!.Name</h1><p><a class="link" asp-action="Index">← Ana sayfa</a></p></section>
+<div class="stats">
+    <div class="stat"><span>TOPLAM SATIR</span><strong>@Model.TotalLines</strong></div>
+    @foreach (var level in new[] { "ERROR", "WARN", "INFO", "DEBUG" })
+    {
+        <div class="stat @(level == "ERROR" ? "error-card" : level == "WARN" ? "warn-card" : "")"><span>@level</span><strong>@Model.Counts.GetValueOrDefault(level)</strong></div>
+    }
+</div>
+<section class="panel groups">
+    <h2>Exception grupları</h2>
+    @if (Model.Groups.Count == 0) { <p class="empty">Exception bulunamadı.</p> }
+    @foreach (var g in Model.Groups)
+    {
+        <details>
+            <summary><strong>@g.Type</strong><span class="count">×@g.Count</span>@if (g.Explanation != null) { <span class="expl">@g.Explanation</span> }</summary>
+            @foreach (var o in g.Occurrences)
+            {
+                <p class="expl">Satır @o.LineNumber @(o.Timestamp?.ToString("yyyy-MM-dd HH:mm:ss"))</p>
+                <pre>@o.Message@foreach (var s in o.StackTrace) { <text>@("\n")@s</text> }</pre>
+            }
+            @if (g.Count > g.Occurrences.Count) { <p class="expl">İlk @g.Occurrences.Count örnek gösteriliyor.</p> }
+        </details>
+    }
+</section>
+<section class="panel">
+    <form asp-action="Analysis" method="get">
+        <input type="hidden" name="id" value="@Model.Info.Id">
+        <div class="controls" style="flex-wrap:wrap">
+            <div class="field"><label for="level">Seviye</label><select id="level" name="level">
+                <option value="ALL" selected="@(f.Level == "ALL")">Tüm seviyeler</option>
+                @foreach (var l in new[] { "ERROR", "WARN", "INFO", "DEBUG", "OTHER" }) { <option value="@l" selected="@(f.Level == l)">@l</option> }
+            </select></div>
+            <div class="field grow"><label for="search">Metin ara</label><input id="search" name="search" value="@f.Search"></div>
+            <div class="field"><label for="from">Başlangıç</label><input id="from" type="datetime-local" step="1" name="from" value="@f.From?.ToString("yyyy-MM-ddTHH:mm:ss")"></div>
+            <div class="field"><label for="to">Bitiş</label><input id="to" type="datetime-local" step="1" name="to" value="@f.To?.ToString("yyyy-MM-ddTHH:mm:ss")"></div>
+            <button type="submit">Filtrele</button>
+            <a class="btn" asp-action="Export" asp-all-route-data="routes">CSV indir</a>
+        </div>
+    </form>
+</section>
+<section class="panel results">
+    <div class="results-head"><h2>Log satırları</h2><span>@Model.MatchCount eşleşme@(Model.Truncated ? " (ilk 1000 gösteriliyor, tümü için CSV indirin)" : "")</span></div>
+    <div class="log-list">
+        @if (Model.Entries.Count == 0) { <p class="empty">Filtreyle eşleşen satır bulunamadı.</p> }
+        else
+        {
+            @foreach (var entry in Model.Entries)
+            {
+                <div class="log-row @(entry.IsException ? "exception" : "") @(entry.IsStackTrace ? "stack" : "")"><span class="line">@entry.LineNumber</span><span class="level @entry.Level.ToLowerInvariant()">@entry.Level</span><code>@entry.Message</code>@if (entry.IsException) { <span class="tag">EXCEPTION</span> } else if (entry.IsStackTrace) { <span class="tag">STACK</span> }</div>
+            }
+        }
+    </div>
+</section>

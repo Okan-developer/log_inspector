@@ -1,0 +1,31 @@
+@model IndexViewModel
+<section class="hero"><div class="eyebrow">DEVELOPER UTILITY</div><h1>Logları daha hızlı incele.</h1><p>Java, Spring Boot ve .NET loglarını yükle; hata seviyelerini, exception gruplarını ve stack trace'leri kolayca incele.</p></section>
+<div class="panel">
+    <form asp-action="Upload" method="post" enctype="multipart/form-data">
+        <label for="file">Log dosyası (.log / .txt, en fazla 5 MB)</label>
+        <input type="file" id="file" name="file" accept=".log,.txt">
+        <label for="input" style="margin-top:16px">veya log metnini yapıştır</label>
+        <textarea id="input" name="input" spellcheck="false" rows="8" placeholder="2026-03-10 10:15:12 ERROR NullPointerException...">@Model.Input</textarea>
+        <div class="row"><button type="submit">Analiz Et →</button></div>
+    </form>
+    @if (Model.Error != null) { <div class="alert" role="alert">@Model.Error</div> }
+    <div class="row">
+        <form asp-action="Sample" method="post"><input type="hidden" name="kind" value="java"><button class="btn-sec" type="submit">Örnek: Java / Spring Boot</button></form>
+        <form asp-action="Sample" method="post"><input type="hidden" name="kind" value="dotnet"><button class="btn-sec" type="submit">Örnek: .NET</button></form>
+    </div>
+</div>
+<section class="panel saved">
+    <h2>Son analizler (bellekte)</h2>
+    @if (Model.Saved.Count == 0) { <p class="empty">Henüz kayıtlı log yok.</p> }
+    else
+    {
+        <ul>
+        @foreach (var s in Model.Saved)
+        {
+            <li><a class="link" asp-action="Analysis" asp-route-id="@s.Id">@s.Name</a><small>@s.CreatedUtc.ToString("yyyy-MM-dd HH:mm") UTC · @(s.SizeBytes / 1024) KB</small>
+            <form asp-action="Delete" method="post"><input type="hidden" name="id" value="@s.Id"><button class="btn-sec" type="submit">Sil</button></form></li>
+        }
+        </ul>
+    }
+    <p class="empty">Loglar yalnızca sunucu belleğinde tutulur, diske yazılmaz; 60 dakika sonra veya uygulama yeniden başlayınca silinir (en fazla 20).</p>
+</section>
